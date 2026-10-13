@@ -6,7 +6,8 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  sendEmailVerification
 } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
 
 import {
@@ -89,11 +90,22 @@ async function entrarSistema() {
   }
 
   try {
-    await signInWithEmailAndPassword(
-      auth,
-      email,
-      senha
-    );
+    const resultado = await signInWithEmailAndPassword(
+    auth,
+    email,
+    senha
+);
+
+if (!resultado.user.emailVerified) {
+    await sendEmailVerification(resultado.user);
+    await signOut(auth);
+
+    $("erroLogin").textContent =
+        "Enviamos um e-mail de verificação. Abra seu Gmail e confirme sua conta.";
+
+    return;
+}
+
   } catch (erro) {
     console.error(erro);
 
