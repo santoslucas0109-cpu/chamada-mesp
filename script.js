@@ -1,1896 +1,989 @@
-// ======================================================
-// MESP - SISTEMA PRINCIPAL
-// ======================================================
 
+import { initializeApp } from
+  "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
 
-// ======================================================
-// CONFIGURAÇÃO
-// ======================================================
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendEmailVerification
+} from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
 
-const SENHA_SISTEMA =
-    "mesp123";
+import {
+  getFirestore,
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 
+// =====================================
+// CONFIGURAÇÃO FIREBASE
+// =====================================
 
-// ======================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCBmvdtsKTa8FtuIZi1DhG5pUrz4F-qoPw",
+  authDomain: "mesp-clinica.firebaseapp.com",
+  projectId: "mesp-clinica",
+  storageBucket: "mesp-clinica.firebasestorage.app",
+  messagingSenderId: "625078094146",
+  appId: "1:625078094146:web:1b297b0852a12f9134a0db",
+  measurementId: "G-BZWTQEJG5L"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// =====================================
 // DADOS
-// ======================================================
+// =====================================
 
-let pacientes =
-    JSON.parse(
-        localStorage.getItem(
-            "mespPacientes"
-        )
-    ) || [];
+let pacientes = [];
+let historico = [];
+let ouvintes = [];
 
+const $ = id => document.getElementById(id);
 
-let historico =
-    JSON.parse(
-        localStorage.getItem(
-            "mespHistorico"
-        )
-    ) || [];
+const horaAtual = () =>
+  new Date().toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 
+const dataAtual = () =>
+  new Date().toLocaleDateString("pt-BR");
 
-// ======================================================
+function escaparHTML(texto) {
+  const elemento = document.createElement("div");
+  elemento.textContent = String(texto ?? "");
+  return elemento.innerHTML;
+}
+
+function mostrarErro(erro) {
+  console.error(erro);
+
+  alert(
+    "Não foi possível concluir a operação. " +
+    "Verifique a internet e as permissões do Firebase."
+  );
+}
+
+// =====================================
 // LOGIN
-// ======================================================
+// =====================================
 
-function entrarSistema() {
+async function entrarSistema() {
+  $("erroLogin").textContent = "";
 
-    const campo =
-        document.getElementById(
-            "senha"
-        );
+  const email = $("email").value.trim();
+  const senha = $("senha").value;
 
+  if (!email || !senha) {
+    $("erroLogin").textContent =
+      "Digite seu e-mail e sua senha.";
+    return;
+  }
 
-    const erro =
-        document.getElementById(
-            "erroLogin"
-        );
+  try {
+    const resultado = await signInWithEmailAndPassword(
+    auth,
+    email,
+    senha
+);
 
+if (!resultado.user.emailVerified) {
+    await sendEmailVerification(resultado.user);
+    await signOut(auth);
 
-    if (
-        campo.value !==
-        SENHA_SISTEMA
-    ) {
+    $("erroLogin").textContent =
+        "Enviamos um e-mail de verificação. Abra seu Gmail e confirme sua conta.";
 
-        erro.textContent =
-            "Senha incorreta.";
+    return;
+}
 
+  } catch (erro) {
+    console.error(erro);
 
-        campo.value =
-            "";
+    $("erroLogin").textContent =
+      "Não foi possível entrar. Confira o e-mail, " +
+      "a senha e a autorização da conta.";
+  }
+}
 
+async function sairSistema() {
+  try {
+    await signOut(auth);
+  } catch (erro) {
+    mostrarErro(erro);
+  }
+}
 
-        campo.focus();
+// =====================================
+// SINCRONIZAÇÃO EM TEMPO REAL
+// =====================================
 
+function pararSincronizacao() {
+  ouvintes.forEach(parar => parar());
+  ouvintes = [];
+}
 
-        return;
-    }
+function iniciarSincronizacao() {
+  pararSincronizacao();
 
+  const ouvirPacientes = onSnapshot(
+    collection(db, "pacientes"),
 
-    erro.textContent =
-        "";
+    resultado => {
+      pacientes = resultado.docs.map(item => ({
+        id: item.id,
+        ...item.data()
+      }));
 
+      pacientes.sort(
+        (a, b) =>
+          (a.criadoEmMs || 0) -
+          (b.criadoEmMs || 0)
+      );
 
-    document
-        .getElementById(
-            "telaLogin"
-        )
-        .classList
-        .add(
-            "escondido"
-        );
+      atualizarSistema();
+    },
 
+    mostrarErro
+  );
 
-    document
-        .getElementById(
-            "sistema"
-        )
-        .classList
-        .remove(
-            "escondido"
-        );
+  const ouvirHistorico = onSnapshot(
+    collection(db, "historico"),
 
+    resultado => {
+      historico = resultado.docs.map(item => ({
+        id: item.id,
+        ...item.data()
+      }));
 
-    sessionStorage.setItem(
-        "mespLogado",
-        "sim"
-    );
+      historico.sort(
+        (a, b) =>
+          (b.finalizadoEmMs || 0) -
+          (a.finalizadoEmMs || 0)
+      );
 
+      mostrarHistorico();
+      atualizarPainel();
+    },
 
+    mostrarErro
+  );
+
+  ouvintes.push(
+    ouvirPacientes,
+    ouvirHistorico
+  );
+}
+
+onAuthStateChanged(auth, usuario => {
+  const autorizado =
+    !!usuario &&
+    usuario.emailVerified &&
+    usuario.email?.toLowerCase() ===
+      "santoslucas0109@gmail.com";
+
+  $("telaLogin").classList.toggle(
+    "escondido",
+    autorizado
+  );
+
+  $("sistema").classList.toggle(
+    "escondido",
+    !autorizado
+  );
+
+  pararSincronizacao();
+
+  if (autorizado) {
+    iniciarSincronizacao();
+  } else {
+    pacientes = [];
+    historico = [];
     atualizarSistema();
-}
+    mostrarHistorico();
 
+    if (usuario) {
+      $("erroLogin").textContent =
+        "Esta conta precisa ter o e-mail verificado " +
+        "e estar autorizada.";
 
-// ======================================================
-// SAIR
-// ======================================================
+      signOut(auth).catch(console.error);
+    }
+  }
+});
 
-function sairSistema() {
-
-    sessionStorage.removeItem(
-        "mespLogado"
-    );
-
-
-    document
-        .getElementById(
-            "sistema"
-        )
-        .classList
-        .add(
-            "escondido"
-        );
-
-
-    document
-        .getElementById(
-            "telaLogin"
-        )
-        .classList
-        .remove(
-            "escondido"
-        );
-
-
-    document
-        .getElementById(
-            "senha"
-        )
-        .value =
-        "";
-}
-
-
-// ======================================================
-// SALVAR
-// ======================================================
-
-function salvar() {
-
-    localStorage.setItem(
-        "mespPacientes",
-        JSON.stringify(
-            pacientes
-        )
-    );
-
-
-    localStorage.setItem(
-        "mespHistorico",
-        JSON.stringify(
-            historico
-        )
-    );
-}
-
-
-// ======================================================
-// HORA
-// ======================================================
-
-function horaAtual() {
-
-    return new Date()
-        .toLocaleTimeString(
-            "pt-BR",
-            {
-                hour:
-                    "2-digit",
-
-                minute:
-                    "2-digit"
-            }
-        );
-}
-
-
-// ======================================================
-// DATA
-// ======================================================
-
-function dataAtual() {
-
-    return new Date()
-        .toLocaleDateString(
-            "pt-BR"
-        );
-}
-
-
-// ======================================================
-// SEGURANÇA
-// ======================================================
-
-function escaparHTML(
-    texto
-) {
-
-    const div =
-        document.createElement(
-            "div"
-        );
-
-
-    div.textContent =
-        texto ?? "";
-
-
-    return div.innerHTML;
-}
-
-
-// ======================================================
+// =====================================
 // ADICIONAR PACIENTE
-// ======================================================
+// =====================================
 
-function adicionarPaciente() {
+async function adicionarPaciente() {
+  const campo = $("nomePaciente");
+  const nome = campo.value.trim();
 
-    const campo =
-        document.getElementById(
-            "nomePaciente"
-        );
+  if (!nome) {
+    alert("Digite o nome do paciente.");
+    return;
+  }
 
-
-    const nome =
-        campo.value.trim();
-
-
-    if (!nome) {
-
-        alert(
-            "Digite o nome do paciente."
-        );
-
-
-        campo.focus();
-
-
-        return;
-    }
-
-
-    const paciente = {
-
-        id:
-            Date.now(),
-
-        nome:
-            nome,
-
-        status:
-            "recepcao",
-
-        data:
-            dataAtual(),
-
-        chegada:
-            horaAtual(),
-
-        entradaTriagem:
-            null,
-
-        entradaMedico:
-            null,
-
-        finalizado:
-            null,
-
-        pressaoSistolica:
-            null,
-
-        pressaoDiastolica:
-            null
-
-    };
-
-
-    pacientes.push(
-        paciente
+  try {
+    await addDoc(
+      collection(db, "pacientes"),
+      {
+        nome: nome,
+        status: "recepcao",
+        data: dataAtual(),
+        chegada: horaAtual(),
+        entradaTriagem: null,
+        entradaMedico: null,
+        finalizado: null,
+        pressaoSistolica: null,
+        pressaoDiastolica: null,
+        criadoEmMs: Date.now(),
+        criadoEm: serverTimestamp()
+      }
     );
 
-
-    salvar();
-
-
-    atualizarSistema();
-
-
-    campo.value =
-        "";
-
-
+    campo.value = "";
     campo.focus();
+
+  } catch (erro) {
+    mostrarErro(erro);
+  }
 }
 
+// =====================================
+// LOCALIZAR PACIENTE
+// =====================================
 
-// ======================================================
-// RECEPÇÃO -> TRIAGEM
-// ======================================================
-
-function enviarTriagem(
-    id
-) {
-
-    const paciente =
-        pacientes.find(
-            p =>
-                p.id === id
-        );
-
-
-    if (!paciente) {
-
-        return;
-    }
-
-
-    paciente.status =
-        "triagem";
-
-
-    paciente.entradaTriagem =
-        horaAtual();
-
-
-    salvar();
-
-
-    atualizarSistema();
+function buscarPaciente(id) {
+  return pacientes.find(
+    paciente => paciente.id === id
+  );
 }
 
+// =====================================
+// ALTERAR DADOS
+// =====================================
 
-// ======================================================
-// SALVAR PRESSÃO
-// ======================================================
-
-function salvarPressao(
-    id
-) {
-
-    const paciente =
-        pacientes.find(
-            p =>
-                p.id === id
-        );
-
-
-    if (!paciente) {
-
-        return false;
-    }
-
-
-    const campoSistolica =
-        document.getElementById(
-            `pressaoSistolica-${id}`
-        );
-
-
-    const campoDiastolica =
-        document.getElementById(
-            `pressaoDiastolica-${id}`
-        );
-
-
-    if (
-        !campoSistolica ||
-        !campoDiastolica
-    ) {
-
-        return false;
-    }
-
-
-    const sistolica =
-        Number(
-            campoSistolica.value
-        );
-
-
-    const diastolica =
-        Number(
-            campoDiastolica.value
-        );
-
-
-    // ==============================================
-    // CAMPOS VAZIOS
-    // ==============================================
-
-    if (
-        campoSistolica.value === "" ||
-        campoDiastolica.value === ""
-    ) {
-
-        alert(
-            "Digite a pressão sistólica e a diastólica."
-        );
-
-
-        campoSistolica.focus();
-
-
-        return false;
-    }
-
-
-    // ==============================================
-    // VERIFICAR NÚMEROS
-    // ==============================================
-
-    if (
-        !Number.isFinite(
-            sistolica
-        )
-        ||
-        !Number.isFinite(
-            diastolica
-        )
-    ) {
-
-        alert(
-            "Digite valores válidos para a pressão arterial."
-        );
-
-
-        return false;
-    }
-
-
-    // ==============================================
-    // VALIDAÇÃO DE ENTRADA
-    //
-    // Estes limites servem para evitar erros
-    // de digitação no sistema, não para fazer
-    // diagnóstico médico.
-    // ==============================================
-
-    if (
-        sistolica < 40 ||
-        sistolica > 300
-    ) {
-
-        alert(
-            "Confira o valor da pressão sistólica."
-        );
-
-
-        campoSistolica.focus();
-
-
-        return false;
-    }
-
-
-    if (
-        diastolica < 20 ||
-        diastolica > 200
-    ) {
-
-        alert(
-            "Confira o valor da pressão diastólica."
-        );
-
-
-        campoDiastolica.focus();
-
-
-        return false;
-    }
-
-
-    // ==============================================
-    // SALVAR
-    // ==============================================
-
-    paciente.pressaoSistolica =
-        Math.round(
-            sistolica
-        );
-
-
-    paciente.pressaoDiastolica =
-        Math.round(
-            diastolica
-        );
-
-
-    salvar();
-
+async function alterarPaciente(id, dados) {
+  try {
+    await updateDoc(
+      doc(db, "pacientes", id),
+      dados
+    );
 
     return true;
+  } catch (erro) {
+    mostrarErro(erro);
+    return false;
+  }
 }
 
+// =====================================
+// RECEPÇÃO -> TRIAGEM
+// =====================================
 
-// ======================================================
+async function enviarTriagem(id) {
+  if (!buscarPaciente(id)) return;
+
+  await alterarPaciente(id, {
+    status: "triagem",
+    entradaTriagem: horaAtual()
+  });
+}
+
+// =====================================
+// PRESSÃO ARTERIAL
+// =====================================
+
+function lerPressao(id) {
+  const campoSistolica =
+    $("pressaoSistolica-" + id);
+
+  const campoDiastolica =
+    $("pressaoDiastolica-" + id);
+
+  if (
+    !campoSistolica ||
+    !campoDiastolica ||
+    !campoSistolica.value ||
+    !campoDiastolica.value
+  ) {
+    alert(
+      "Digite a pressão sistólica e a diastólica."
+    );
+
+    return null;
+  }
+
+  const sistolica = Number(
+    campoSistolica.value
+  );
+
+  const diastolica = Number(
+    campoDiastolica.value
+  );
+
+  if (
+    !Number.isInteger(sistolica) ||
+    !Number.isInteger(diastolica) ||
+    sistolica < 40 ||
+    sistolica > 300 ||
+    diastolica < 20 ||
+    diastolica > 200
+  ) {
+    alert(
+      "Confira os valores da pressão arterial."
+    );
+
+    return null;
+  }
+
+  return {
+    pressaoSistolica: sistolica,
+    pressaoDiastolica: diastolica
+  };
+}
+
+async function salvarPressao(id) {
+  const pressao = lerPressao(id);
+
+  if (!pressao) return false;
+
+  return await alterarPaciente(
+    id,
+    pressao
+  );
+}
+
+// =====================================
 // TRIAGEM -> MÉDICO
-// ======================================================
+// =====================================
 
-function enviarMedico(
-    id
-) {
+async function enviarMedico(id) {
+  const pressao = lerPressao(id);
 
-    const paciente =
-        pacientes.find(
-            p =>
-                p.id === id
-        );
+  if (!pressao) return;
 
-
-    if (!paciente) {
-
-        return;
-    }
-
-
-    // PRIMEIRO SALVAR PRESSÃO
-
-    if (
-        !salvarPressao(id)
-    ) {
-
-        return;
-    }
-
-
-    paciente.status =
-        "medico";
-
-
-    paciente.entradaMedico =
-        horaAtual();
-
-
-    salvar();
-
-
-    atualizarSistema();
+  await alterarPaciente(id, {
+    ...pressao,
+    status: "medico",
+    entradaMedico: horaAtual()
+  });
 }
 
-
-// ======================================================
+// =====================================
 // VOLTAR PARA RECEPÇÃO
-// ======================================================
+// =====================================
 
-function voltarRecepcao(
-    id
-) {
-
-    const paciente =
-        pacientes.find(
-            p =>
-                p.id === id
-        );
-
-
-    if (!paciente) {
-
-        return;
-    }
-
-
-    paciente.status =
-        "recepcao";
-
-
-    paciente.entradaTriagem =
-        null;
-
-
-    paciente.entradaMedico =
-        null;
-
-
-    paciente.pressaoSistolica =
-        null;
-
-
-    paciente.pressaoDiastolica =
-        null;
-
-
-    salvar();
-
-
-    atualizarSistema();
+async function voltarRecepcao(id) {
+  await alterarPaciente(id, {
+    status: "recepcao",
+    entradaTriagem: null,
+    entradaMedico: null,
+    pressaoSistolica: null,
+    pressaoDiastolica: null
+  });
 }
 
-
-// ======================================================
+// =====================================
 // VOLTAR PARA TRIAGEM
-// ======================================================
+// =====================================
 
-function voltarTriagem(
-    id
-) {
-
-    const paciente =
-        pacientes.find(
-            p =>
-                p.id === id
-        );
-
-
-    if (!paciente) {
-
-        return;
-    }
-
-
-    paciente.status =
-        "triagem";
-
-
-    paciente.entradaMedico =
-        null;
-
-
-    salvar();
-
-
-    atualizarSistema();
+async function voltarTriagem(id) {
+  await alterarPaciente(id, {
+    status: "triagem",
+    entradaMedico: null
+  });
 }
 
-
-// ======================================================
+// =====================================
 // EXCLUIR PACIENTE
-// ======================================================
+// =====================================
 
-function excluirPaciente(
-    id
-) {
+async function excluirPaciente(id) {
+  const paciente = buscarPaciente(id);
 
-    const paciente =
-        pacientes.find(
-            p =>
-                p.id === id
-        );
+  if (!paciente) return;
 
+  const confirmar = confirm(
+    `Remover ${paciente.nome} da fila?`
+  );
 
-    if (!paciente) {
+  if (!confirmar) return;
 
-        return;
-    }
-
-
-    const confirmar =
-        confirm(
-
-            `Remover ${paciente.nome} da fila?`
-
-        );
-
-
-    if (!confirmar) {
-
-        return;
-    }
-
-
-    pacientes =
-        pacientes.filter(
-            p =>
-                p.id !== id
-        );
-
-
-    salvar();
-
-
-    atualizarSistema();
+  try {
+    await deleteDoc(
+      doc(db, "pacientes", id)
+    );
+  } catch (erro) {
+    mostrarErro(erro);
+  }
 }
 
+// =====================================
+// FINALIZAR ATENDIMENTO
+// =====================================
 
-// ======================================================
-// FINALIZAR
-// ======================================================
+async function finalizarPaciente(id) {
+  const paciente = buscarPaciente(id);
 
-function finalizarPaciente(
-    id
-) {
+  if (!paciente) return;
 
-    const paciente =
-        pacientes.find(
-            p =>
-                p.id === id
-        );
+  const confirmar = confirm(
+    `Finalizar atendimento de ${paciente.nome}?`
+  );
 
+  if (!confirmar) return;
 
-    if (!paciente) {
+  try {
+    await addDoc(
+      collection(db, "historico"),
+      {
+        ...paciente,
+        pacienteId: id,
+        finalizado: horaAtual(),
+        finalizadoEmMs: Date.now()
+      }
+    );
 
-        return;
-    }
+    await deleteDoc(
+      doc(db, "pacientes", id)
+    );
 
+  } catch (erro) {
+    mostrarErro(erro);
+  }
+}
 
-    const confirmar =
-        confirm(
+// =====================================
+// CHAMADAS DA TV
+// =====================================
 
-            `Finalizar atendimento de ${paciente.nome}?`
+async function chamarPaciente(id, destino) {
+  const paciente = buscarPaciente(id);
 
-        );
+  if (!paciente) return;
 
+  try {
+    await addDoc(
+      collection(db, "chamadas"),
+      {
+        pacienteId: id,
+        nome: paciente.nome,
+        destino: destino,
+        horario: horaAtual(),
+        data: dataAtual(),
+        criadoEmMs: Date.now(),
+        criadoEm: serverTimestamp()
+      }
+    );
 
-    if (!confirmar) {
+  } catch (erro) {
+    mostrarErro(erro);
+  }
+}
 
-        return;
-    }
+function chamarSala(id) {
+  const select = $("sala-" + id);
 
+  if (!select) return;
 
-    paciente.finalizado =
-        horaAtual();
+  chamarPaciente(
+    id,
+    select.value
+  );
+}
 
+// =====================================
+// ABRIR TELAS
+// =====================================
 
-    historico.unshift({
+function abrirTela(tela) {
+  const telas = [
+    "recepcao",
+    "triagem",
+    "medico",
+    "historico"
+  ];
 
-        ...paciente
+  telas.forEach(nome => {
+    $(nome).classList.add("escondida");
+  });
 
+  $(tela).classList.remove("escondida");
+
+  document
+    .querySelectorAll(".menu-btn")
+    .forEach(botao => {
+      botao.classList.remove("ativo");
     });
 
+  const botoes = {
+    recepcao: "btnRecepcao",
+    triagem: "btnTriagem",
+    medico: "btnMedico",
+    historico: "btnHistorico"
+  };
 
-    pacientes =
-        pacientes.filter(
-            p =>
-                p.id !== id
-        );
+  $(botoes[tela]).classList.add("ativo");
 
-
-    salvar();
-
-
-    atualizarSistema();
-
-
+  if (tela === "historico") {
     mostrarHistorico();
+  }
 }
 
+// =====================================
+// FORMATAR PRESSÃO
+// =====================================
 
-// ======================================================
-// CHAMADA DA TV
-// ======================================================
+function formatarPressao(paciente) {
+  if (
+    paciente.pressaoSistolica == null ||
+    paciente.pressaoDiastolica == null
+  ) {
+    return "Não registrada";
+  }
 
-function chamarPaciente(
-    id,
-    destino
-) {
-
-    const paciente =
-        pacientes.find(
-            p =>
-                p.id === id
-        );
-
-
-    if (!paciente) {
-
-        return;
-    }
-
-
-    const chamada = {
-
-        id:
-            Date.now(),
-
-        pacienteId:
-            paciente.id,
-
-        nome:
-            paciente.nome,
-
-        destino:
-            destino,
-
-        horario:
-            horaAtual(),
-
-        data:
-            dataAtual()
-
-    };
-
-
-    // CHAMADA ATUAL
-
-    localStorage.setItem(
-
-        "mespChamadaAtual",
-
-        JSON.stringify(
-            chamada
-        )
-
-    );
-
-
-    // HISTÓRICO DAS CHAMADAS
-
-    let chamadas =
-        JSON.parse(
-
-            localStorage.getItem(
-                "mespChamadas"
-            )
-
-        ) || [];
-
-
-    chamadas.unshift(
-        chamada
-    );
-
-
-    // GUARDAR SOMENTE AS 30 ÚLTIMAS
-
-    chamadas =
-        chamadas.slice(
-            0,
-            30
-        );
-
-
-    localStorage.setItem(
-
-        "mespChamadas",
-
-        JSON.stringify(
-            chamadas
-        )
-
-    );
+  return (
+    paciente.pressaoSistolica +
+    "/" +
+    paciente.pressaoDiastolica +
+    " mmHg"
+  );
 }
 
-
-// ======================================================
-// CHAMAR SALA
-// ======================================================
-
-function chamarSala(
-    id
-) {
-
-    const select =
-        document.getElementById(
-            `sala-${id}`
-        );
-
-
-    if (!select) {
-
-        return;
-    }
-
-
-    chamarPaciente(
-
-        id,
-
-        select.value
-
-    );
-}
-
-
-// ======================================================
-// NAVEGAÇÃO
-// ======================================================
-
-function abrirTela(
-    tela
-) {
-
-    const telas = [
-
-        "recepcao",
-
-        "triagem",
-
-        "medico",
-
-        "historico"
-
-    ];
-
-
-    telas.forEach(
-
-        nome => {
-
-            document
-                .getElementById(
-                    nome
-                )
-                .classList
-                .add(
-                    "escondida"
-                );
-
-        }
-
-    );
-
-
-    document
-        .getElementById(
-            tela
-        )
-        .classList
-        .remove(
-            "escondida"
-        );
-
-
-    // REMOVER ATIVO DOS BOTÕES
-
-    document
-        .querySelectorAll(
-            ".menu-btn"
-        )
-        .forEach(
-
-            botao => {
-
-                botao
-                    .classList
-                    .remove(
-                        "ativo"
-                    );
-
-            }
-
-        );
-
-
-    const mapa = {
-
-        recepcao:
-            "btnRecepcao",
-
-        triagem:
-            "btnTriagem",
-
-        medico:
-            "btnMedico",
-
-        historico:
-            "btnHistorico"
-
-    };
-
-
-    document
-        .getElementById(
-            mapa[tela]
-        )
-        .classList
-        .add(
-            "ativo"
-        );
-
-
-    if (
-        tela ===
-        "historico"
-    ) {
-
-        mostrarHistorico();
-    }
-}
-
-
-// ======================================================
-// MOSTRAR PRESSÃO
-// ======================================================
-
-function formatarPressao(
-    paciente
-) {
-
-    if (
-        paciente.pressaoSistolica == null ||
-        paciente.pressaoDiastolica == null
-    ) {
-
-        return "Não registrada";
-    }
-
-
-    return (
-        `${paciente.pressaoSistolica}` +
-        `/` +
-        `${paciente.pressaoDiastolica}` +
-        ` mmHg`
-    );
-}
-
-
-// ======================================================
-// CRIAR CARD
-// ======================================================
-
-function criarCard(
-    paciente,
-    numero,
-    setor
-) {
-
-    const nome =
-        escaparHTML(
-            paciente.nome
-        );
-
-
-    let horarios = `
-
-        <span>
-
-            Chegada:
-
-            <strong>
-
-                ${paciente.chegada || "--:--"}
-
-            </strong>
-
-        </span>
-
+// =====================================
+// CRIAR CARD DO PACIENTE
+// =====================================
+
+function criarCard(paciente, numero, setor) {
+  const id = JSON.stringify(paciente.id);
+
+  const nome = escaparHTML(
+    paciente.nome
+  );
+
+  let informacoesExtras = "";
+  let botoes = "";
+
+  // RECEPÇÃO
+  if (setor === "recepcao") {
+    botoes = `
+      <button
+        class="btn btn-avancar"
+        onclick='enviarTriagem(${id})'
+      >
+        Enviar para triagem →
+      </button>
+
+      <button
+        class="btn btn-excluir"
+        onclick='excluirPaciente(${id})'
+      >
+        Excluir
+      </button>
+    `;
+  }
+
+  // TRIAGEM
+  if (setor === "triagem") {
+    informacoesExtras = `
+      <div class="campo-pressao">
+        <label>🩺 Pressão arterial</label>
+
+        <div class="pressao-inputs">
+          <input
+            type="number"
+            id="pressaoSistolica-${paciente.id}"
+            placeholder="120"
+            min="40"
+            max="300"
+            step="1"
+            value="${paciente.pressaoSistolica ?? ""}"
+          >
+
+          <span class="barra">/</span>
+
+          <input
+            type="number"
+            id="pressaoDiastolica-${paciente.id}"
+            placeholder="80"
+            min="20"
+            max="200"
+            step="1"
+            value="${paciente.pressaoDiastolica ?? ""}"
+          >
+
+          <span class="unidade">mmHg</span>
+        </div>
+      </div>
     `;
 
+    botoes = `
+      <button
+        class="btn btn-voltar"
+        onclick='voltarRecepcao(${id})'
+      >
+        ← Voltar
+      </button>
 
-    if (
-        paciente.entradaTriagem
-    ) {
+      <button
+        class="btn btn-chamar"
+        onclick='chamarPaciente(${id}, "TRIAGEM")'
+      >
+        📢 Chamar
+      </button>
 
-        horarios += `
+      <button
+        class="btn btn-avancar"
+        onclick='enviarMedico(${id})'
+      >
+        Enviar para médico →
+      </button>
+    `;
+  }
 
-            <span>
+  // MÉDICO
+  if (setor === "medico") {
+    informacoesExtras = `
+      <div class="pressao-medico">
+        <span>🩺 Pressão registrada</span>
+        <strong>${formatarPressao(paciente)}</strong>
+      </div>
+    `;
 
-                Triagem:
+    const salas = [1, 2, 3, 4, 5]
+      .map(numeroSala => `
+        <option value="SALA ${numeroSala}">
+          Sala ${numeroSala}
+        </option>
+      `)
+      .join("");
 
-                <strong>
+    botoes = `
+      <button
+        class="btn btn-voltar"
+        onclick='voltarTriagem(${id})'
+      >
+        ← Voltar
+      </button>
 
-                    ${paciente.entradaTriagem}
+      <select
+        id="sala-${paciente.id}"
+        class="select-sala"
+      >
+        ${salas}
+      </select>
 
-                </strong>
+      <button
+        class="btn btn-chamar"
+        onclick='chamarSala(${id})'
+      >
+        📢 Chamar
+      </button>
 
-            </span>
+      <button
+        class="btn btn-finalizar"
+        onclick='finalizarPaciente(${id})'
+      >
+        ✓ Finalizar
+      </button>
+    `;
+  }
 
-        `;
-    }
+  const chegada = escaparHTML(
+    paciente.chegada || "--:--"
+  );
 
+  const triagem = paciente.entradaTriagem
+    ? `
+      <span>
+        Triagem:
+        <strong>
+          ${escaparHTML(paciente.entradaTriagem)}
+        </strong>
+      </span>
+    `
+    : "";
 
-    if (
-        paciente.entradaMedico
-    ) {
+  const medico = paciente.entradaMedico
+    ? `
+      <span>
+        Médico:
+        <strong>
+          ${escaparHTML(paciente.entradaMedico)}
+        </strong>
+      </span>
+    `
+    : "";
 
-        horarios += `
+  return `
+    <div class="paciente">
+      <div class="paciente-conteudo">
 
-            <span>
+        <div class="paciente-info">
+          <div class="numero">${numero}</div>
 
-                Médico:
+          <div>
+            <div class="nome">${nome}</div>
 
-                <strong>
+            <div class="horarios">
+              <span>
+                Chegada:
+                <strong>${chegada}</strong>
+              </span>
 
-                    ${paciente.entradaMedico}
-
-                </strong>
-
-            </span>
-
-        `;
-    }
-
-
-    let botoes =
-        "";
-
-
-    let informacoesExtras =
-        "";
-
-
-    // ==================================================
-    // RECEPÇÃO
-    // ==================================================
-
-    if (
-        setor ===
-        "recepcao"
-    ) {
-
-        botoes = `
-
-            <button
-                class="btn btn-avancar"
-                onclick="enviarTriagem(${paciente.id})"
-            >
-
-                Enviar para triagem →
-
-            </button>
-
-
-            <button
-                class="btn btn-excluir"
-                onclick="excluirPaciente(${paciente.id})"
-            >
-
-                Excluir
-
-            </button>
-
-        `;
-    }
-
-
-    // ==================================================
-    // TRIAGEM
-    // ==================================================
-
-    if (
-        setor ===
-        "triagem"
-    ) {
-
-        informacoesExtras = `
-
-            <div class="campo-pressao">
-
-                <label>
-
-                    🩺 Pressão arterial
-
-                </label>
-
-
-                <div class="pressao-inputs">
-
-
-                    <!-- SISTÓLICA -->
-
-                    <input
-                        type="number"
-                        id="pressaoSistolica-${paciente.id}"
-                        placeholder="120"
-                        min="40"
-                        max="300"
-                        step="1"
-                        value="${
-                            paciente.pressaoSistolica ?? ""
-                        }"
-                    >
-
-
-                    <span class="barra">
-
-                        /
-
-                    </span>
-
-
-                    <!-- DIASTÓLICA -->
-
-                    <input
-                        type="number"
-                        id="pressaoDiastolica-${paciente.id}"
-                        placeholder="80"
-                        min="20"
-                        max="200"
-                        step="1"
-                        value="${
-                            paciente.pressaoDiastolica ?? ""
-                        }"
-                    >
-
-
-                    <span class="unidade">
-
-                        mmHg
-
-                    </span>
-
-                </div>
-
+              ${triagem}
+              ${medico}
             </div>
-
-        `;
-
-
-        botoes = `
-
-            <button
-                class="btn btn-voltar"
-                onclick="voltarRecepcao(${paciente.id})"
-            >
-
-                ← Voltar
-
-            </button>
-
-
-            <button
-                class="btn btn-chamar"
-                onclick="chamarPaciente(${paciente.id}, 'TRIAGEM')"
-            >
-
-                📢 Chamar
-
-            </button>
-
-
-            <button
-                class="btn btn-avancar"
-                onclick="enviarMedico(${paciente.id})"
-            >
-
-                Enviar para médico →
-
-            </button>
-
-        `;
-    }
-
-
-    // ==================================================
-    // MÉDICO
-    // ==================================================
-
-    if (
-        setor ===
-        "medico"
-    ) {
-
-        informacoesExtras = `
-
-            <div class="pressao-medico">
-
-                <span>
-
-                    🩺 Pressão registrada
-
-                </span>
-
-                <strong>
-
-                    ${formatarPressao(paciente)}
-
-                </strong>
-
-            </div>
-
-        `;
-
-
-        botoes = `
-
-            <button
-                class="btn btn-voltar"
-                onclick="voltarTriagem(${paciente.id})"
-            >
-
-                ← Voltar
-
-            </button>
-
-
-            <select
-                id="sala-${paciente.id}"
-                class="select-sala"
-            >
-
-                <option value="SALA 1">
-                    Sala 1
-                </option>
-
-                <option value="SALA 2">
-                    Sala 2
-                </option>
-
-                <option value="SALA 3">
-                    Sala 3
-                </option>
-
-                <option value="SALA 4">
-                    Sala 4
-                </option>
-
-                <option value="SALA 5">
-                    Sala 5
-                </option>
-
-            </select>
-
-
-            <button
-                class="btn btn-chamar"
-                onclick="chamarSala(${paciente.id})"
-            >
-
-                📢 Chamar
-
-            </button>
-
-
-            <button
-                class="btn btn-finalizar"
-                onclick="finalizarPaciente(${paciente.id})"
-            >
-
-                ✓ Finalizar
-
-            </button>
-
-        `;
-    }
-
-
-    // ==================================================
-    // RETORNAR CARD
-    // ==================================================
-
-    return `
-
-        <div class="paciente">
-
-            <div class="paciente-conteudo">
-
-
-                <div class="paciente-info">
-
-
-                    <div class="numero">
-
-                        ${numero}
-
-                    </div>
-
-
-                    <div>
-
-                        <div class="nome">
-
-                            ${nome}
-
-                        </div>
-
-
-                        <div class="horarios">
-
-                            ${horarios}
-
-                        </div>
-
-                    </div>
-
-
-                </div>
-
-
-                ${informacoesExtras}
-
-
-            </div>
-
-
-            <div class="acoes">
-
-                ${botoes}
-
-            </div>
-
-
+          </div>
         </div>
 
-    `;
+        ${informacoesExtras}
+
+      </div>
+
+      <div class="acoes">
+        ${botoes}
+      </div>
+    </div>
+  `;
 }
 
-
-// ======================================================
-// ATUALIZAR LISTA
-// ======================================================
+// =====================================
+// ATUALIZAR FILAS
+// =====================================
 
 function atualizarLista(
-    setor,
-    listaId,
-    contadorId
+  setor,
+  listaId,
+  contadorId
 ) {
+  const fila = pacientes.filter(
+    paciente => paciente.status === setor
+  );
 
-    const fila =
-        pacientes.filter(
-            p =>
-                p.status === setor
-        );
+  $(contadorId).textContent = fila.length;
 
+  if (fila.length === 0) {
+    $(listaId).innerHTML = `
+      <div class="vazio">
+        <strong>Nenhum paciente aguardando</strong>
+        A fila está vazia.
+      </div>
+    `;
 
-    document
-        .getElementById(
-            contadorId
-        )
-        .textContent =
-        fila.length;
+    return;
+  }
 
-
-    const lista =
-        document.getElementById(
-            listaId
-        );
-
-
-    if (
-        fila.length === 0
-    ) {
-
-        lista.innerHTML = `
-
-            <div class="vazio">
-
-                <strong>
-
-                    Nenhum paciente aguardando
-
-                </strong>
-
-                A fila está vazia.
-
-            </div>
-
-        `;
-
-
-        return;
-    }
-
-
-    lista.innerHTML =
-
-        fila.map(
-
-            (
-                paciente,
-                index
-            ) =>
-
-                criarCard(
-
-                    paciente,
-
-                    index + 1,
-
-                    setor
-
-                )
-
-        ).join("");
+  $(listaId).innerHTML = fila
+    .map((paciente, indice) =>
+      criarCard(
+        paciente,
+        indice + 1,
+        setor
+      )
+    )
+    .join("");
 }
 
-
-// ======================================================
+// =====================================
 // HISTÓRICO
-// ======================================================
+// =====================================
 
 function mostrarHistorico() {
+  const pesquisa = (
+    $("pesquisaHistorico")?.value || ""
+  )
+    .trim()
+    .toLowerCase();
 
-    const tabela =
-        document.getElementById(
-            "tabelaHistorico"
-        );
+  const resultados = historico.filter(
+    paciente =>
+      (paciente.nome || "")
+        .toLowerCase()
+        .includes(pesquisa)
+  );
 
+  $("historicoVazio").classList.toggle(
+    "escondido",
+    resultados.length > 0
+  );
 
-    const vazio =
-        document.getElementById(
-            "historicoVazio"
-        );
+  $("tabelaHistorico").innerHTML =
+    resultados
+      .map(paciente => `
+        <tr>
+          <td>
+            <strong>
+              ${escaparHTML(paciente.nome)}
+            </strong>
+          </td>
 
+          <td>
+            ${escaparHTML(paciente.chegada || "-")}
+          </td>
 
-    const pesquisa =
-        document.getElementById(
-            "pesquisaHistorico"
-        );
+          <td>
+            ${escaparHTML(paciente.entradaTriagem || "-")}
+          </td>
 
+          <td>
+            ${formatarPressao(paciente)}
+          </td>
 
-    const texto =
+          <td>
+            ${escaparHTML(paciente.entradaMedico || "-")}
+          </td>
 
-        pesquisa
+          <td>
+            ${escaparHTML(paciente.finalizado || "-")}
+          </td>
 
-            ? pesquisa
-                .value
-                .trim()
-                .toLowerCase()
-
-            : "";
-
-
-    const resultados =
-        historico.filter(
-
-            paciente =>
-
-                paciente.nome
-                    .toLowerCase()
-                    .includes(
-                        texto
-                    )
-
-        );
-
-
-    if (
-        resultados.length === 0
-    ) {
-
-        tabela.innerHTML =
-            "";
-
-
-        vazio
-            .classList
-            .remove(
-                "escondido"
-            );
-
-
-        return;
-    }
-
-
-    vazio
-        .classList
-        .add(
-            "escondido"
-        );
-
-
-    tabela.innerHTML =
-
-        resultados.map(
-
-            paciente => `
-
-                <tr>
-
-                    <td>
-
-                        <strong>
-
-                            ${escaparHTML(
-                                paciente.nome
-                            )}
-
-                        </strong>
-
-                    </td>
-
-
-                    <td>
-
-                        ${paciente.chegada || "-"}
-
-                    </td>
-
-
-                    <td>
-
-                        ${paciente.entradaTriagem || "-"}
-
-                    </td>
-
-
-                    <td>
-
-                        ${formatarPressao(paciente)}
-
-                    </td>
-
-
-                    <td>
-
-                        ${paciente.entradaMedico || "-"}
-
-                    </td>
-
-
-                    <td>
-
-                        ${paciente.finalizado || "-"}
-
-                    </td>
-
-
-                    <td>
-
-                        ${paciente.data || "-"}
-
-                    </td>
-
-                </tr>
-
-            `
-
-        ).join("");
+          <td>
+            ${escaparHTML(paciente.data || "-")}
+          </td>
+        </tr>
+      `)
+      .join("");
 }
 
-
-// ======================================================
+// =====================================
 // DASHBOARD
-// ======================================================
+// =====================================
 
 function atualizarPainel() {
+  const contar = setor =>
+    pacientes.filter(
+      paciente => paciente.status === setor
+    ).length;
 
-    const recepcao =
-        pacientes.filter(
-            p =>
-                p.status ===
-                "recepcao"
-        ).length;
+  const setores = [
+    ["recepcao", "Recepcao"],
+    ["triagem", "Triagem"],
+    ["medico", "Medico"]
+  ];
 
+  setores.forEach(([setor, nome]) => {
+    $("painel" + nome).textContent =
+      contar(setor);
 
-    const triagem =
-        pacientes.filter(
-            p =>
-                p.status ===
-                "triagem"
-        ).length;
+    $("badge" + nome).textContent =
+      contar(setor);
+  });
 
-
-    const medico =
-        pacientes.filter(
-            p =>
-                p.status ===
-                "medico"
-        ).length;
-
-
-    const hoje =
-        dataAtual();
-
-
-    const atendidos =
-        historico.filter(
-            p =>
-                p.data ===
-                hoje
-        ).length;
-
-
-    document
-        .getElementById(
-            "painelRecepcao"
-        )
-        .textContent =
-        recepcao;
-
-
-    document
-        .getElementById(
-            "painelTriagem"
-        )
-        .textContent =
-        triagem;
-
-
-    document
-        .getElementById(
-            "painelMedico"
-        )
-        .textContent =
-        medico;
-
-
-    document
-        .getElementById(
-            "painelAtendidos"
-        )
-        .textContent =
-        atendidos;
-
-
-    document
-        .getElementById(
-            "badgeRecepcao"
-        )
-        .textContent =
-        recepcao;
-
-
-    document
-        .getElementById(
-            "badgeTriagem"
-        )
-        .textContent =
-        triagem;
-
-
-    document
-        .getElementById(
-            "badgeMedico"
-        )
-        .textContent =
-        medico;
+  $("painelAtendidos").textContent =
+    historico.filter(
+      paciente => paciente.data === dataAtual()
+    ).length;
 }
 
-
-// ======================================================
+// =====================================
 // ATUALIZAR SISTEMA
-// ======================================================
+// =====================================
 
 function atualizarSistema() {
+  atualizarLista(
+    "recepcao",
+    "listaRecepcao",
+    "contadorRecepcao"
+  );
 
-    atualizarLista(
+  atualizarLista(
+    "triagem",
+    "listaTriagem",
+    "contadorTriagem"
+  );
 
-        "recepcao",
+  atualizarLista(
+    "medico",
+    "listaMedico",
+    "contadorMedico"
+  );
 
-        "listaRecepcao",
-
-        "contadorRecepcao"
-
-    );
-
-
-    atualizarLista(
-
-        "triagem",
-
-        "listaTriagem",
-
-        "contadorTriagem"
-
-    );
-
-
-    atualizarLista(
-
-        "medico",
-
-        "listaMedico",
-
-        "contadorMedico"
-
-    );
-
-
-    atualizarPainel();
+  atualizarPainel();
 }
 
+// =====================================
+// DATA
+// =====================================
 
-// ======================================================
-// MOSTRAR DATA
-// ======================================================
+$("dataAtual").textContent =
+  new Date().toLocaleDateString(
+    "pt-BR",
+    {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    }
+  );
 
-function mostrarData() {
+// =====================================
+// TECLA ENTER
+// =====================================
 
-    document
-        .getElementById(
-            "dataAtual"
-        )
-        .textContent =
+$("nomePaciente").addEventListener(
+  "keydown",
+  evento => {
+    if (evento.key === "Enter") {
+      adicionarPaciente();
+    }
+  }
+);
 
-        new Date()
-            .toLocaleDateString(
+$("senha").addEventListener(
+  "keydown",
+  evento => {
+    if (evento.key === "Enter") {
+      entrarSistema();
+    }
+  }
+);
 
-                "pt-BR",
+$("email").addEventListener(
+  "keydown",
+  evento => {
+    if (evento.key === "Enter") {
+      entrarSistema();
+    }
+  }
+);
 
-                {
+// =====================================
+// FUNÇÕES DOS BOTÕES HTML
+// =====================================
 
-                    weekday:
-                        "long",
+Object.assign(window, {
+  entrarSistema,
+  sairSistema,
+  adicionarPaciente,
+  enviarTriagem,
+  salvarPressao,
+  enviarMedico,
+  voltarRecepcao,
+  voltarTriagem,
+  excluirPaciente,
+  finalizarPaciente,
+  chamarPaciente,
+  chamarSala,
+  abrirTela,
+  mostrarHistorico
+});
 
-                    day:
-                        "2-digit",
-
-                    month:
-                        "long",
-
-                    year:
-                        "numeric"
-
-                }
-
-            );
-}
-
-
-// ======================================================
-// ENTER - PACIENTE
-// ======================================================
-
-document
-    .getElementById(
-        "nomePaciente"
-    )
-    .addEventListener(
-
-        "keydown",
-
-        function(event) {
-
-            if (
-                event.key ===
-                "Enter"
-            ) {
-
-                adicionarPaciente();
-
-            }
-
-        }
-
-    );
-
-
-// ======================================================
-// ENTER - LOGIN
-// ======================================================
-
-document
-    .getElementById(
-        "senha"
-    )
-    .addEventListener(
-
-        "keydown",
-
-        function(event) {
-
-            if (
-                event.key ===
-                "Enter"
-            ) {
-
-                entrarSistema();
-
-            }
-
-        }
-
-    );
-
-
-// ======================================================
-// INICIAR
-// ======================================================
-
-mostrarData();
-
+// =====================================
+// INICIALIZAÇÃO
+// =====================================
 
 atualizarSistema();
-
-
 mostrarHistorico();
-
-
-// ======================================================
-// RESTAURAR LOGIN
-// ======================================================
-
-if (
-
-    sessionStorage.getItem(
-        "mespLogado"
-    )
-
-    ===
-
-    "sim"
-
-) {
-
-    document
-        .getElementById(
-            "telaLogin"
-        )
-        .classList
-        .add(
-            "escondido"
-        );
-
-
-    document
-        .getElementById(
-            "sistema"
-        )
-        .classList
-        .remove(
-            "escondido"
-        );
-}
