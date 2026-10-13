@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>MESP - Painel de Chamadas</title>
+
+    <link
+        rel="stylesheet"
+        href="painel.css"
+    >
+</head>
+
+<body>
+
+<!-- =====================================================
+     TOPO
+===================================================== -->
+
+<header class="topo-tv">
+
+    <!-- LOGO -->
+
+    <div class="marca-tv">
+
+        <img
+            src="logo.jpg"
+            alt="Logo MESP"
+        >
+
+        <div>
+
+            <h1>
+                MESP
+            </h1>
+
+            <p>
+                CLÍNICA MÉDICA
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- CONFIGURAÇÕES -->
+
+    <div class="topo-acoes">
+
+        <!-- ESCOLHER VOZ -->
+
+        <div class="seletor-voz">
+
+            <label for="selecionarVoz">
+                Voz:
+            </label>
+
+            <select id="selecionarVoz">
+
+                <option>
+                    Carregando vozes...
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <!-- TESTAR VOZ -->
+
+        <button
+            class="btn-testar"
+            onclick="testarVoz()"
+        >
+            ▶ Testar
+        </button>
+
+
+        <!-- ATIVAR SOM -->
+
+        <button
+            id="btnSom"
+            class="btn-som"
+            onclick="ativarSom()"
+        >
+            🔊 ATIVAR SOM
+        </button>
+
+
+        <!-- RELÓGIO -->
+
+        <div class="relogio-area">
+
+            <div id="relogio">
+                00:00
+            </div>
+
+            <div id="data">
+            </div>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =====================================================
+     PAINEL
+===================================================== -->
+
+<main class="painel">
+
+
+    <!-- =================================================
+         CHAMADA PRINCIPAL
+    ================================================== -->
+
+    <section class="chamada-principal">
+
+
+        <div class="titulo-chamada">
+
+            🔔 CHAMADA
+
+        </div>
+
+
+        <!-- =============================================
+             AGUARDANDO
+        ============================================== -->
+
+        <div
+            id="aguardando"
+            class="aguardando"
+        >
+
+            <div class="icone-espera">
+
+                +
+
+            </div>
+
+
+            <h2>
+
+                Aguardando próxima chamada
+
+            </h2>
+
+
+            <p>
+
+                Aguarde seu nome aparecer no painel.
+
+            </p>
+
+        </div>
+
+
+        <!-- =============================================
+             PACIENTE CHAMADO
+        ============================================== -->
+
+        <div
+            id="chamada"
+            class="chamada escondido"
+        >
+
+            <div class="label-paciente">
+
+                PACIENTE
+
+            </div>
+
+
+            <div class="linha-chamada">
+
+
+                <!-- NOME -->
+
+                <span id="nomeChamada">
+
+                    -
+
+                </span>
+
+
+                <!-- TRAÇO -->
+
+                <span class="traco">
+
+                    -
+
+                </span>
+
+
+                <!-- SALA / TRIAGEM -->
+
+                <span id="destinoChamada">
+
+                    -
+
+                </span>
+
+
+            </div>
+
+
+            <!-- HORÁRIO -->
+
+            <div
+                id="horarioChamada"
+                class="horario-chamada"
+            >
+            </div>
+
+
+        </div>
+
+
+    </section>
+
+
+    <!-- =================================================
+         ÚLTIMAS CHAMADAS
+    ================================================== -->
+
+    <aside class="ultimas">
+
+
+        <div class="ultimas-titulo">
+
+            ÚLTIMAS CHAMADAS
+
+        </div>
+
+
+        <div
+            id="listaChamadas"
+            class="lista-chamadas"
+        >
+
+
+            <div class="sem-chamadas">
+
+                Nenhuma chamada realizada.
+
+            </div>
+
+
+        </div>
+
+
+    </aside>
+
+
+</main>
+
+
+<!-- =====================================================
+     RODAPÉ
+===================================================== -->
+
+<footer>
+
+    <span>
+
+        Aguarde seu nome ser chamado
+
+    </span>
+
+
+    <span class="separador">
+
+        •
+
+    </span>
+
+
+    <span>
+
+        MESP Clínica Médica
+
+    </span>
+
+</footer>
+
+
+<!-- =====================================================
+     JAVASCRIPT
+===================================================== -->
+
+<script src="painel.js"></script>
+
+</body>
+
+</html>

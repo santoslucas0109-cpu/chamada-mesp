@@ -1,0 +1,334 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MESP - Controle de Atendimento</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div id="telaLogin" class="tela-login">
+    <div class="login-card">
+      <img src="logo.jpg" class="login-logo" alt="Logo MESP">
+
+      <h1>MESP</h1>
+      <p>Sistema de Controle de Atendimento</p>
+
+      <div class="campo-login">
+        <label for="email">E-mail</label>
+        <input
+          type="email"
+          id="email"
+          placeholder="Digite seu e-mail"
+          autocomplete="username"
+        >
+      </div>
+
+      <div class="campo-login">
+        <label for="senha">Senha</label>
+        <input
+          type="password"
+          id="senha"
+          placeholder="Digite sua senha"
+          autocomplete="current-password"
+        >
+      </div>
+
+      <button class="btn-login" onclick="entrarSistema()">
+        Entrar no sistema
+      </button>
+
+      <div id="erroLogin" class="erro-login"></div>
+    </div>
+  </div>
+
+  <!-- SISTEMA -->
+  <div id="sistema" class="sistema escondido">
+
+    <header class="topo">
+      <div class="marca">
+        <div class="logo">
+          <img src="logo.jpg" alt="Logo MESP">
+        </div>
+        <div class="marca-texto">
+          <h1>MESP</h1>
+          <span>CLÍNICA MÉDICA</span>
+        </div>
+      </div>
+
+      <div class="topo-direita">
+        <div class="status">
+          <span class="bolinha"></span>
+          Sistema conectado
+        </div>
+        <button class="btn-sair" onclick="sairSistema()">
+          Sair
+        </button>
+      </div>
+    </header>
+
+    <main class="container">
+
+      <div class="titulo">
+        <h2>Controle de Atendimento</h2>
+        <p id="dataAtual"></p>
+      </div>
+
+      <!-- DASHBOARD -->
+      <section class="dashboard">
+
+        <div class="dashboard-card">
+          <div class="dashboard-icone">🏠</div>
+          <div>
+            <span>Recepção</span>
+            <strong id="painelRecepcao">0</strong>
+            <small>aguardando</small>
+          </div>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="dashboard-icone">🩺</div>
+          <div>
+            <span>Triagem</span>
+            <strong id="painelTriagem">0</strong>
+            <small>aguardando</small>
+          </div>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="dashboard-icone">👨‍⚕️</div>
+          <div>
+            <span>Médico</span>
+            <strong id="painelMedico">0</strong>
+            <small>aguardando</small>
+          </div>
+        </div>
+
+        <div class="dashboard-card destaque">
+          <div class="dashboard-icone">✓</div>
+          <div>
+            <span>Atendidos hoje</span>
+            <strong id="painelAtendidos">0</strong>
+            <small>finalizados</small>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- MENU -->
+      <nav class="menu">
+
+        <button
+          id="btnRecepcao"
+          class="menu-btn ativo"
+          onclick="abrirTela('recepcao')"
+        >
+          <span class="icone">🏠</span>
+          <div>
+            <strong>Recepção</strong>
+            <small>Cadastrar</small>
+          </div>
+          <span id="badgeRecepcao" class="badge">0</span>
+        </button>
+
+        <button
+          id="btnTriagem"
+          class="menu-btn"
+          onclick="abrirTela('triagem')"
+        >
+          <span class="icone">🩺</span>
+          <div>
+            <strong>Triagem</strong>
+            <small>Pressão arterial</small>
+          </div>
+          <span id="badgeTriagem" class="badge">0</span>
+        </button>
+
+        <button
+          id="btnMedico"
+          class="menu-btn"
+          onclick="abrirTela('medico')"
+        >
+          <span class="icone">👨‍⚕️</span>
+          <div>
+            <strong>Médico</strong>
+            <small>Atendimento</small>
+          </div>
+          <span id="badgeMedico" class="badge">0</span>
+        </button>
+
+        <button
+          id="btnHistorico"
+          class="menu-btn"
+          onclick="abrirTela('historico')"
+        >
+          <span class="icone">📋</span>
+          <div>
+            <strong>Histórico</strong>
+            <small>Atendidos</small>
+          </div>
+        </button>
+
+      </nav>
+
+      <!-- RECEPÇÃO -->
+      <section id="recepcao" class="tela">
+
+        <div class="card">
+          <div class="card-titulo">
+            <div class="card-icone">+</div>
+            <div>
+              <h3>Novo paciente</h3>
+              <p>
+                Digite o nome do paciente para
+                adicioná-lo à fila.
+              </p>
+            </div>
+          </div>
+
+          <div class="formulario">
+            <input
+              type="text"
+              id="nomePaciente"
+              placeholder="Nome completo do paciente"
+              autocomplete="off"
+            >
+            <button
+              class="btn-principal"
+              onclick="adicionarPaciente()"
+            >
+              + Adicionar paciente
+            </button>
+          </div>
+        </div>
+
+        <div class="cabecalho-fila">
+          <div>
+            <h3>Fila da recepção</h3>
+            <p>Pacientes em ordem de chegada</p>
+          </div>
+          <div class="contador">
+            <strong id="contadorRecepcao">0</strong>
+            <span>aguardando</span>
+          </div>
+        </div>
+
+        <div id="listaRecepcao" class="lista"></div>
+
+      </section>
+
+      <!-- TRIAGEM -->
+      <section id="triagem" class="tela escondida">
+
+        <div class="informacao">
+          <div class="informacao-icone">🩺</div>
+          <div>
+            <strong>Triagem</strong>
+            <p>
+              Chame o paciente, registre a pressão
+              arterial e encaminhe para o médico.
+            </p>
+          </div>
+        </div>
+
+        <div class="cabecalho-fila">
+          <div>
+            <h3>Fila da triagem</h3>
+            <p>Pacientes encaminhados pela recepção</p>
+          </div>
+          <div class="contador">
+            <strong id="contadorTriagem">0</strong>
+            <span>aguardando</span>
+          </div>
+        </div>
+
+        <div id="listaTriagem" class="lista"></div>
+
+      </section>
+
+      <!-- MÉDICO -->
+      <section id="medico" class="tela escondida">
+
+        <div class="informacao">
+          <div class="informacao-icone">👨‍⚕️</div>
+          <div>
+            <strong>Atendimento médico</strong>
+            <p>
+              Veja a pressão registrada, selecione
+              a sala e chame o paciente.
+            </p>
+          </div>
+        </div>
+
+        <div class="cabecalho-fila">
+          <div>
+            <h3>Fila do médico</h3>
+            <p>Pacientes liberados pela triagem</p>
+          </div>
+          <div class="contador">
+            <strong id="contadorMedico">0</strong>
+            <span>aguardando</span>
+          </div>
+        </div>
+
+        <div id="listaMedico" class="lista"></div>
+
+      </section>
+
+      <!-- HISTÓRICO -->
+      <section id="historico" class="tela escondida">
+
+        <div class="historico-topo">
+          <div>
+            <h3>Histórico de atendimentos</h3>
+            <p>Pacientes que finalizaram o atendimento.</p>
+          </div>
+
+          <input
+            type="text"
+            id="pesquisaHistorico"
+            placeholder="Pesquisar paciente..."
+            oninput="mostrarHistorico()"
+          >
+        </div>
+
+        <div class="tabela-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Paciente</th>
+                <th>Chegada</th>
+                <th>Triagem</th>
+                <th>Pressão arterial</th>
+                <th>Médico</th>
+                <th>Finalizado</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaHistorico"></tbody>
+          </table>
+        </div>
+
+        <div id="historicoVazio" class="vazio escondido">
+          <strong>Nenhum atendimento encontrado</strong>
+          O histórico está vazio.
+        </div>
+
+      </section>
+
+    </main>
+
+    <footer>
+      MESP Clínica Médica • Sistema interno de atendimento
+    </footer>
+
+  </div>
+
+  <!-- FIREBASE -->
+  <script type="module" src="script.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,1151 @@
+/* ======================================================
+   CONFIGURAÇÕES GERAIS
+====================================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f7f7;
+    color: #263f41;
+    min-height: 100vh;
+}
+
+button,
+input,
+select {
+    font-family: inherit;
+}
+
+
+/* ======================================================
+   LOGIN
+====================================================== */
+
+.tela-login {
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #176560,
+            #2b8e89
+        );
+}
+
+.login-card {
+    width: 100%;
+    max-width: 400px;
+
+    background: white;
+
+    border-radius: 20px;
+
+    padding: 35px;
+
+    text-align: center;
+
+    box-shadow:
+        0 20px 50px
+        rgba(0,0,0,0.15);
+}
+
+.login-logo {
+    width: 100px;
+    height: 100px;
+
+    object-fit: contain;
+
+    margin-bottom: 15px;
+}
+
+.login-card h1 {
+    color: #217c78;
+
+    letter-spacing: 4px;
+
+    font-size: 30px;
+}
+
+.login-card > p {
+    color: #7b8b8c;
+
+    margin-top: 7px;
+    margin-bottom: 30px;
+
+    font-size: 14px;
+}
+
+.campo-login {
+    text-align: left;
+
+    margin-bottom: 15px;
+}
+
+.campo-login label {
+    display: block;
+
+    font-size: 13px;
+    font-weight: bold;
+
+    margin-bottom: 7px;
+
+    color: #526768;
+}
+
+.campo-login input {
+    width: 100%;
+
+    padding: 15px;
+
+    border: 1px solid #d3dddd;
+
+    border-radius: 9px;
+
+    outline: none;
+
+    font-size: 16px;
+}
+
+.campo-login input:focus {
+    border-color: #217c78;
+}
+
+.btn-login {
+    width: 100%;
+
+    padding: 15px;
+
+    border: none;
+
+    border-radius: 9px;
+
+    background: #217c78;
+
+    color: white;
+
+    font-size: 15px;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+.btn-login:hover {
+    background: #176b67;
+}
+
+.erro-login {
+    color: #c74747;
+
+    font-size: 13px;
+
+    margin-top: 13px;
+
+    min-height: 16px;
+}
+
+
+/* ======================================================
+   TOPO
+====================================================== */
+
+.topo {
+    min-height: 85px;
+
+    padding: 12px 6%;
+
+    background: white;
+
+    border-bottom:
+        1px solid #e0e8e8;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 100;
+}
+
+.marca {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+}
+
+.logo {
+    width: 58px;
+    height: 58px;
+}
+
+.logo img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: contain;
+}
+
+.marca h1 {
+    color: #217c78;
+
+    font-size: 24px;
+
+    letter-spacing: 3px;
+}
+
+.marca span {
+    color: #77898a;
+
+    font-size: 9px;
+
+    letter-spacing: 2px;
+}
+
+.topo-direita {
+    display: flex;
+
+    align-items: center;
+
+    gap: 20px;
+}
+
+.status {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    color: #6e8182;
+
+    font-size: 13px;
+}
+
+.bolinha {
+    width: 9px;
+    height: 9px;
+
+    border-radius: 50%;
+
+    background: #2daf70;
+}
+
+.btn-sair {
+    padding: 9px 15px;
+
+    border:
+        1px solid #d9e1e1;
+
+    border-radius: 8px;
+
+    background: white;
+
+    color: #607273;
+
+    cursor: pointer;
+}
+
+
+/* ======================================================
+   CONTAINER
+====================================================== */
+
+.container {
+    width: 90%;
+
+    max-width: 1200px;
+
+    margin: 35px auto;
+}
+
+.titulo {
+    margin-bottom: 23px;
+}
+
+.titulo h2 {
+    font-size: 28px;
+}
+
+.titulo p {
+    margin-top: 5px;
+
+    color: #7c8e8f;
+
+    text-transform: capitalize;
+
+    font-size: 14px;
+}
+
+
+/* ======================================================
+   DASHBOARD
+====================================================== */
+
+.dashboard {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap: 12px;
+
+    margin-bottom: 25px;
+}
+
+.dashboard-card {
+    background: white;
+
+    border:
+        1px solid #e0e7e7;
+
+    border-radius: 13px;
+
+    padding: 19px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 15px;
+}
+
+.dashboard-icone {
+    width: 45px;
+    height: 45px;
+
+    min-width: 45px;
+
+    border-radius: 11px;
+
+    background: #e8f4f3;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 20px;
+}
+
+.dashboard-card span {
+    display: block;
+
+    color: #6d8081;
+
+    font-size: 13px;
+}
+
+.dashboard-card strong {
+    display: block;
+
+    margin: 4px 0;
+
+    color: #217c78;
+
+    font-size: 30px;
+}
+
+.dashboard-card small {
+    color: #91a0a1;
+}
+
+.dashboard-card.destaque {
+    background: #217c78;
+
+    border-color: #217c78;
+}
+
+.dashboard-card.destaque span,
+.dashboard-card.destaque strong,
+.dashboard-card.destaque small {
+    color: white;
+}
+
+
+/* ======================================================
+   MENU
+====================================================== */
+
+.menu {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap: 10px;
+
+    margin-bottom: 30px;
+}
+
+.menu-btn {
+    position: relative;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+
+    padding: 16px;
+
+    min-height: 74px;
+
+    background: white;
+
+    border:
+        2px solid #e0e7e7;
+
+    border-radius: 12px;
+
+    cursor: pointer;
+
+    text-align: left;
+
+    color: #405657;
+}
+
+.menu-btn.ativo {
+    background: #217c78;
+
+    border-color: #217c78;
+
+    color: white;
+}
+
+.menu-btn .icone {
+    font-size: 23px;
+}
+
+.menu-btn > div {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+.badge {
+    position: absolute;
+
+    top: 7px;
+    right: 7px;
+
+    min-width: 22px;
+
+    height: 22px;
+
+    padding: 0 5px;
+
+    border-radius: 20px;
+
+    background: #e4f2f1;
+
+    color: #217c78;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 11px;
+
+    font-weight: bold;
+}
+
+.menu-btn.ativo .badge {
+    background: white;
+}
+
+
+/* ======================================================
+   CARDS
+====================================================== */
+
+.card {
+    background: white;
+
+    border:
+        1px solid #e0e7e7;
+
+    border-radius: 14px;
+
+    padding: 24px;
+}
+
+.card-titulo {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    margin-bottom: 20px;
+}
+
+.card-icone {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 10px;
+
+    background: #e4f2f1;
+
+    color: #217c78;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 24px;
+
+    font-weight: bold;
+}
+
+.card p {
+    margin-top: 4px;
+
+    color: #7b8c8d;
+
+    font-size: 14px;
+}
+
+.formulario {
+    display: flex;
+
+    gap: 10px;
+}
+
+.formulario input {
+    flex: 1;
+
+    padding: 15px;
+
+    border:
+        1px solid #d5dfdf;
+
+    border-radius: 9px;
+
+    font-size: 16px;
+
+    outline: none;
+}
+
+.formulario input:focus {
+    border-color: #217c78;
+}
+
+.btn-principal {
+    border: none;
+
+    border-radius: 9px;
+
+    background: #217c78;
+
+    color: white;
+
+    padding: 0 22px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+
+/* ======================================================
+   INFORMAÇÃO
+====================================================== */
+
+.informacao {
+    background: #e8f4f3;
+
+    border:
+        1px solid #d2e9e7;
+
+    border-radius: 13px;
+
+    padding: 18px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 14px;
+
+    margin-bottom: 25px;
+}
+
+.informacao-icone {
+    width: 45px;
+    height: 45px;
+
+    background: white;
+
+    border-radius: 10px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 25px;
+}
+
+.informacao p {
+    margin-top: 4px;
+
+    color: #698182;
+
+    font-size: 14px;
+}
+
+
+/* ======================================================
+   FILA
+====================================================== */
+
+.cabecalho-fila {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin: 28px 0 14px;
+}
+
+.cabecalho-fila p {
+    margin-top: 4px;
+
+    color: #7d8e8f;
+
+    font-size: 14px;
+}
+
+.contador {
+    min-width: 90px;
+
+    padding: 8px 15px;
+
+    background: white;
+
+    border:
+        1px solid #e0e7e7;
+
+    border-radius: 10px;
+
+    text-align: center;
+}
+
+.contador strong {
+    display: block;
+
+    color: #217c78;
+
+    font-size: 24px;
+}
+
+.contador span {
+    color: #7e8e8f;
+
+    font-size: 10px;
+}
+
+.lista {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+}
+
+
+/* ======================================================
+   PACIENTE
+====================================================== */
+
+.paciente {
+    background: white;
+
+    border:
+        1px solid #e0e7e7;
+
+    border-radius: 12px;
+
+    padding: 17px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+}
+
+.paciente-conteudo {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 12px;
+
+    flex: 1;
+}
+
+.paciente-info {
+    display: flex;
+
+    align-items: center;
+
+    gap: 14px;
+}
+
+.numero {
+    width: 43px;
+    height: 43px;
+
+    min-width: 43px;
+
+    border-radius: 50%;
+
+    background: #e4f2f1;
+
+    color: #217c78;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-weight: bold;
+}
+
+.nome {
+    font-size: 16px;
+
+    font-weight: bold;
+}
+
+.horarios {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 10px;
+
+    margin-top: 6px;
+
+    color: #899899;
+
+    font-size: 11px;
+}
+
+
+/* ======================================================
+   PRESSÃO ARTERIAL
+====================================================== */
+
+.campo-pressao {
+    margin-left: 57px;
+
+    display: flex;
+
+    align-items: center;
+
+    flex-wrap: wrap;
+
+    gap: 14px;
+}
+
+.campo-pressao > label {
+    color: #526c6d;
+
+    font-size: 13px;
+
+    font-weight: bold;
+}
+
+.pressao-inputs {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+}
+
+.pressao-inputs input {
+    width: 85px;
+
+    padding: 10px;
+
+    border:
+        1px solid #ccdada;
+
+    border-radius: 8px;
+
+    outline: none;
+
+    text-align: center;
+
+    font-size: 15px;
+
+    background: white;
+}
+
+.pressao-inputs input:focus {
+    border-color: #217c78;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(33,124,120,0.07);
+}
+
+.pressao-inputs .barra {
+    color: #607576;
+
+    font-size: 22px;
+
+    font-weight: bold;
+}
+
+.pressao-inputs .unidade {
+    color: #77898a;
+
+    font-size: 12px;
+
+    font-weight: bold;
+}
+
+
+/* PRESSÃO VISÍVEL PARA O MÉDICO */
+
+.pressao-medico {
+    margin-left: 57px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    width: fit-content;
+
+    background: #e8f4f3;
+
+    border:
+        1px solid #d3e8e6;
+
+    border-radius: 9px;
+
+    padding: 10px 14px;
+}
+
+.pressao-medico span {
+    color: #617778;
+
+    font-size: 13px;
+}
+
+.pressao-medico strong {
+    color: #217c78;
+
+    font-size: 18px;
+}
+
+
+/* ======================================================
+   AÇÕES
+====================================================== */
+
+.acoes {
+    display: flex;
+
+    align-items: center;
+
+    flex-wrap: wrap;
+
+    gap: 7px;
+}
+
+.btn {
+    border: none;
+
+    border-radius: 8px;
+
+    padding: 10px 14px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+.btn-avancar {
+    background: #217c78;
+
+    color: white;
+}
+
+.btn-voltar {
+    background: #edf1f1;
+
+    color: #607273;
+}
+
+.btn-finalizar {
+    background: #def3e6;
+
+    color: #267247;
+}
+
+.btn-excluir {
+    background: #f9e6e6;
+
+    color: #a33d3d;
+}
+
+.btn-chamar {
+    background: #e8f2ff;
+
+    color: #2469a0;
+}
+
+.select-sala {
+    padding: 10px 12px;
+
+    border:
+        1px solid #d5dfdf;
+
+    border-radius: 8px;
+
+    background: white;
+
+    color: #405657;
+
+    font-weight: bold;
+}
+
+
+/* ======================================================
+   HISTÓRICO
+====================================================== */
+
+.historico-topo {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 20px;
+}
+
+.historico-topo p {
+    color: #7d8e8f;
+
+    margin-top: 4px;
+
+    font-size: 14px;
+}
+
+.historico-topo input {
+    width: 280px;
+
+    padding: 12px;
+
+    border:
+        1px solid #d5dfdf;
+
+    border-radius: 8px;
+
+    outline: none;
+}
+
+.historico-topo input:focus {
+    border-color: #217c78;
+}
+
+.tabela-container {
+    width: 100%;
+
+    overflow-x: auto;
+
+    background: white;
+
+    border-radius: 12px;
+
+    border:
+        1px solid #e0e7e7;
+}
+
+table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    min-width: 850px;
+}
+
+th {
+    background: #f1f6f6;
+
+    color: #607576;
+
+    font-size: 12px;
+
+    text-align: left;
+
+    padding: 14px;
+}
+
+td {
+    padding: 15px 14px;
+
+    border-top:
+        1px solid #edf1f1;
+
+    font-size: 13px;
+}
+
+
+/* ======================================================
+   VAZIO
+====================================================== */
+
+.vazio {
+    background: white;
+
+    border:
+        2px dashed #d9e3e3;
+
+    border-radius: 12px;
+
+    padding: 45px 20px;
+
+    text-align: center;
+
+    color: #879798;
+}
+
+.vazio strong {
+    display: block;
+
+    margin-bottom: 5px;
+}
+
+
+/* ======================================================
+   RODAPÉ
+====================================================== */
+
+footer {
+    padding: 30px;
+
+    text-align: center;
+
+    color: #899899;
+
+    font-size: 11px;
+}
+
+
+/* ======================================================
+   ESCONDER
+====================================================== */
+
+.escondida,
+.escondido {
+    display: none !important;
+}
+
+
+/* ======================================================
+   RESPONSIVO
+====================================================== */
+
+@media(max-width: 900px) {
+
+    .dashboard,
+    .menu {
+        grid-template-columns:
+            repeat(2,1fr);
+    }
+
+    .paciente {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+    .acoes {
+        padding-left: 57px;
+    }
+}
+
+
+@media(max-width: 650px) {
+
+    .container {
+        width: 94%;
+    }
+
+    .status {
+        display: none;
+    }
+
+    .marca-texto {
+        display: none;
+    }
+
+    .formulario {
+        flex-direction: column;
+    }
+
+    .btn-principal {
+        padding: 15px;
+    }
+
+    .campo-pressao,
+    .pressao-medico {
+        margin-left: 0;
+    }
+
+    .acoes {
+        padding-left: 0;
+    }
+
+    .historico-topo {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+    .historico-topo input {
+        width: 100%;
+    }
+}
