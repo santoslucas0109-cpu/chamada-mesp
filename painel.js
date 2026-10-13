@@ -1,911 +1,450 @@
-// ======================================================
-// MESP CLÍNICA MÉDICA
-// PAINEL DE CHAMADAS
-// ======================================================
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
 
-// ======================================================
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+  limit
+} from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
+
+// =====================================
+// CONFIGURAÇÃO FIREBASE
+// =====================================
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCBmvdtsKTa8FtuIZi1DhG5pUrz4F-qoPw",
+  authDomain: "mesp-clinica.firebaseapp.com",
+  projectId: "mesp-clinica",
+  storageBucket: "mesp-clinica.firebasestorage.app",
+  messagingSenderId: "625078094146",
+  appId: "1:625078094146:web:1b297b0852a12f9134a0db",
+  measurementId: "G-BZWTQEJG5L"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const $ = id => document.getElementById(id);
+
+// =====================================
 // VARIÁVEIS
-// ======================================================
+// =====================================
 
 let ultimaChamadaExibida = null;
-
 let somAtivado = false;
-
 let vozesDisponiveis = [];
+let pararOuvir = null;
+let primeiraLeitura = true;
 
+// =====================================
+// STATUS DO PAINEL
+// =====================================
 
-// ======================================================
-// CARREGAR VOZES DO COMPUTADOR
-// ======================================================
+function informarStatus(texto) {
+  const espera = $("aguardando");
+
+  if (espera) {
+    const titulo = espera.querySelector("h2");
+
+    if (titulo) {
+      titulo.textContent = texto;
+    }
+  }
+}
+
+// =====================================
+// CARREGAR VOZES
+// =====================================
 
 function carregarVozes() {
+  if (!("speechSynthesis" in window)) return;
 
-    vozesDisponiveis =
-        window.speechSynthesis.getVoices();
+  vozesDisponiveis =
+    window.speechSynthesis.getVoices();
 
+  const seletor = $("selecionarVoz");
 
-    const selecionarVoz =
-        document.getElementById(
-            "selecionarVoz"
-        );
+  if (!seletor) return;
 
+  const anterior = seletor.value;
 
-    if (!selecionarVoz) {
+  const portugues = vozesDisponiveis.filter(
+    voz => voz.lang.toLowerCase().startsWith("pt")
+  );
 
-        return;
-    }
+  const lista = portugues.length
+    ? portugues
+    : vozesDisponiveis;
 
+  seletor.replaceChildren();
 
-    // SALVAR VOZ QUE ESTAVA SELECIONADA
-
-    const vozAnterior =
-        selecionarVoz.value;
-
-
-    selecionarVoz.innerHTML =
-        "";
-
-
-    // ==============================================
-    // PROCURAR VOZES EM PORTUGUÊS
-    // ==============================================
-
-    const vozesPortugues =
-        vozesDisponiveis.filter(
-
-            voz =>
-
-                voz.lang
-                    .toLowerCase()
-                    .startsWith("pt")
-
-        );
-
-
-    // ==============================================
-    // SE EXISTIR VOZ EM PORTUGUÊS
-    // MOSTRAR SOMENTE ELAS
-    // ==============================================
-
-    const listaDeVozes =
-
-        vozesPortugues.length > 0
-
-            ? vozesPortugues
-
-            : vozesDisponiveis;
-
-
-    // ==============================================
-    // NENHUMA VOZ
-    // ==============================================
-
-    if (listaDeVozes.length === 0) {
-
-        const opcao =
-            document.createElement(
-                "option"
-            );
-
-
-        opcao.textContent =
-            "Nenhuma voz encontrada";
-
-
-        selecionarVoz.appendChild(
-            opcao
-        );
-
-
-        return;
-    }
-
-
-    // ==============================================
-    // COLOCAR VOZES NO SELECT
-    // ==============================================
-
-    listaDeVozes.forEach(
-
-        voz => {
-
-            const opcao =
-                document.createElement(
-                    "option"
-                );
-
-
-            opcao.value =
-                voz.name;
-
-
-            opcao.textContent =
-                `${voz.name} - ${voz.lang}`;
-
-
-            selecionarVoz.appendChild(
-                opcao
-            );
-
-        }
-
+  if (!lista.length) {
+    seletor.add(
+      new Option("Nenhuma voz encontrada", "")
     );
+    return;
+  }
 
+  lista.forEach(voz => {
+    seletor.add(
+      new Option(
+        `${voz.name} - ${voz.lang}`,
+        voz.name
+      )
+    );
+  });
 
-    // ==============================================
-    // RESTAURAR VOZ ESCOLHIDA
-    // ==============================================
-
-    const existeVozAnterior =
-        listaDeVozes.some(
-
-            voz =>
-                voz.name ===
-                vozAnterior
-
-        );
-
-
-    if (existeVozAnterior) {
-
-        selecionarVoz.value =
-            vozAnterior;
-    }
-
+  if (lista.some(voz => voz.name === anterior)) {
+    seletor.value = anterior;
+  }
 }
 
+if ("speechSynthesis" in window) {
+  window.speechSynthesis.onvoiceschanged =
+    carregarVozes;
 
-// ======================================================
-// EVENTO DE CARREGAMENTO DAS VOZES
-// ======================================================
+  carregarVozes();
 
-if (
-    "speechSynthesis" in window
-) {
-
-    window.speechSynthesis.onvoiceschanged =
-        carregarVozes;
-
-
-    carregarVozes();
+  setTimeout(carregarVozes, 500);
+  setTimeout(carregarVozes, 1500);
 }
 
-
-// ======================================================
-// PEGAR VOZ ESCOLHIDA
-// ======================================================
-
-function pegarVozSelecionada() {
-
-    const selecionarVoz =
-        document.getElementById(
-            "selecionarVoz"
-        );
-
-
-    if (!selecionarVoz) {
-
-        return null;
-    }
-
-
-    const nomeVoz =
-        selecionarVoz.value;
-
-
-    return vozesDisponiveis.find(
-
-        voz =>
-            voz.name ===
-            nomeVoz
-
-    ) || null;
-}
-
-
-// ======================================================
-// CRIAR FALA
-// ======================================================
+// =====================================
+// CONFIGURAR FALA
+// =====================================
 
 function criarMensagem(texto) {
+  const mensagem =
+    new SpeechSynthesisUtterance(texto);
 
-    const mensagem =
-        new SpeechSynthesisUtterance(
-            texto
-        );
+  mensagem.lang = "pt-BR";
+  mensagem.rate = 0.85;
+  mensagem.pitch = 1;
+  mensagem.volume = 1;
 
+  const selecionada = $("selecionarVoz")?.value;
 
-    // PORTUGUÊS BRASIL
+  const voz = vozesDisponiveis.find(
+    v => v.name === selecionada
+  );
 
-    mensagem.lang =
-        "pt-BR";
+  if (voz) {
+    mensagem.voice = voz;
+    mensagem.lang = voz.lang;
+  }
 
-
-    // VELOCIDADE
-    // 1 = normal
-    // 0.85 = um pouco mais devagar
-
-    mensagem.rate =
-        0.85;
-
-
-    // TOM
-    // 1 = normal
-
-    mensagem.pitch =
-        1;
-
-
-    // VOLUME
-
-    mensagem.volume =
-        1;
-
-
-    // PEGAR VOZ ESCOLHIDA
-
-    const voz =
-        pegarVozSelecionada();
-
-
-    if (voz) {
-
-        mensagem.voice =
-            voz;
-
-
-        mensagem.lang =
-            voz.lang;
-    }
-
-
-    return mensagem;
+  return mensagem;
 }
 
-
-// ======================================================
+// =====================================
 // TESTAR VOZ
-// ======================================================
+// =====================================
 
 function testarVoz() {
+  if (!("speechSynthesis" in window)) {
+    alert("Este navegador não suporta voz.");
+    return;
+  }
 
-    if (
-        !("speechSynthesis" in window)
-    ) {
+  window.speechSynthesis.cancel();
 
-        alert(
-            "Este navegador não suporta voz."
-        );
-
-        return;
-    }
-
-
-    window.speechSynthesis.cancel();
-
-
-    const mensagem =
-        criarMensagem(
-
-            "Olá. Esta é a voz selecionada para o sistema de chamadas da MESP."
-
-        );
-
-
-    window.speechSynthesis.speak(
-        mensagem
-    );
+  window.speechSynthesis.speak(
+    criarMensagem(
+      "Olá. Esta é a voz selecionada para o sistema de chamadas da MESP."
+    )
+  );
 }
 
-
-// ======================================================
+// =====================================
 // ATIVAR SOM
-// ======================================================
+// =====================================
 
 function ativarSom() {
+  if (!("speechSynthesis" in window)) {
+    alert("Este navegador não suporta voz.");
+    return;
+  }
 
-    if (
-        !("speechSynthesis" in window)
-    ) {
+  somAtivado = true;
 
-        alert(
-            "Este navegador não suporta voz."
-        );
+  const botao = $("btnSom");
 
-        return;
-    }
+  if (botao) {
+    botao.textContent = "🔊 SOM ATIVADO";
+    botao.classList.add("ativo");
+  }
 
+  window.speechSynthesis.cancel();
 
-    somAtivado =
-        true;
-
-
-    const botao =
-        document.getElementById(
-            "btnSom"
-        );
-
-
-    botao.textContent =
-        "🔊 SOM ATIVADO";
-
-
-    botao.classList.add(
-        "ativo"
-    );
-
-
-    // FALAR PARA CONFIRMAR
-
-    window.speechSynthesis.cancel();
-
-
-    const mensagem =
-        criarMensagem(
-            "Som ativado."
-        );
-
-
-    window.speechSynthesis.speak(
-        mensagem
-    );
+  window.speechSynthesis.speak(
+    criarMensagem("Som ativado.")
+  );
 }
 
-
-// ======================================================
+// =====================================
 // FALAR CHAMADA
-// ======================================================
+// =====================================
 
 function falarChamada(chamada) {
+  if (
+    !somAtivado ||
+    !("speechSynthesis" in window)
+  ) {
+    return;
+  }
 
-    if (!somAtivado) {
+  window.speechSynthesis.cancel();
 
-        return;
-    }
-
-
-    if (
-        !("speechSynthesis" in window)
-    ) {
-
-        return;
-    }
-
-
-    // ==============================================
-    // TEXTO FALADO
-    //
-    // EXEMPLO:
-    //
-    // Lucas Silva. Sala 2.
-    // ==============================================
-
-    const texto =
-
-        `${chamada.nome}. ${chamada.destino}.`;
-
-
-    const mensagem =
-        criarMensagem(
-            texto
-        );
-
-
-    // CANCELAR VOZ ANTERIOR
-
-    window.speechSynthesis.cancel();
-
-
-    // FALAR NOVA CHAMADA
-
-    window.speechSynthesis.speak(
-        mensagem
-    );
+  window.speechSynthesis.speak(
+    criarMensagem(
+      `${chamada.nome}. ${chamada.destino}.`
+    )
+  );
 }
 
-
-// ======================================================
+// =====================================
 // RELÓGIO
-// ======================================================
+// =====================================
 
 function atualizarRelogio() {
+  const agora = new Date();
 
-    const agora =
-        new Date();
+  if ($("relogio")) {
+    $("relogio").textContent =
+      agora.toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+  }
 
-
-    const relogio =
-        document.getElementById(
-            "relogio"
-        );
-
-
-    const data =
-        document.getElementById(
-            "data"
-        );
-
-
-    if (relogio) {
-
-        relogio.textContent =
-
-            agora.toLocaleTimeString(
-
-                "pt-BR",
-
-                {
-
-                    hour:
-                        "2-digit",
-
-                    minute:
-                        "2-digit"
-
-                }
-
-            );
-
-    }
-
-
-    if (data) {
-
-        data.textContent =
-
-            agora.toLocaleDateString(
-
-                "pt-BR",
-
-                {
-
-                    weekday:
-                        "long",
-
-                    day:
-                        "2-digit",
-
-                    month:
-                        "long"
-
-                }
-
-            );
-
-    }
-
+  if ($("data")) {
+    $("data").textContent =
+      agora.toLocaleDateString("pt-BR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long"
+      });
+  }
 }
 
-
-// ======================================================
-// SEGURANÇA DO TEXTO
-// ======================================================
-
-function escaparHTML(texto) {
-
-    const div =
-        document.createElement(
-            "div"
-        );
-
-
-    div.textContent =
-        texto ?? "";
-
-
-    return div.innerHTML;
-}
-
-
-// ======================================================
-// CARREGAR DADOS
-// ======================================================
-
-function carregarPainel() {
-
-    let chamada =
-        null;
-
-
-    let chamadas =
-        [];
-
-
-    try {
-
-        chamada =
-            JSON.parse(
-
-                localStorage.getItem(
-                    "mespChamadaAtual"
-                )
-
-            );
-
-
-        chamadas =
-            JSON.parse(
-
-                localStorage.getItem(
-                    "mespChamadas"
-                )
-
-            ) || [];
-
-    }
-
-    catch (erro) {
-
-        console.error(
-            "Erro ao carregar chamadas:",
-            erro
-        );
-
-    }
-
-
-    mostrarChamada(
-        chamada
-    );
-
-
-    mostrarUltimasChamadas(
-        chamadas
-    );
-
-}
-
-
-// ======================================================
+// =====================================
 // MOSTRAR CHAMADA PRINCIPAL
-// ======================================================
+// =====================================
 
-function mostrarChamada(chamada) {
+function mostrarChamada(chamada, anunciar = false) {
+  const aguardando = $("aguardando");
+  const area = $("chamada");
 
-    const aguardando =
-        document.getElementById(
-            "aguardando"
-        );
+  if (!aguardando || !area) return;
 
+  aguardando.classList.toggle(
+    "escondido",
+    !!chamada
+  );
 
-    const areaChamada =
-        document.getElementById(
-            "chamada"
-        );
+  area.classList.toggle(
+    "escondido",
+    !chamada
+  );
 
+  if (!chamada) return;
 
-    if (!aguardando || !areaChamada) {
+  $("nomeChamada").textContent =
+    chamada.nome || "";
 
-        return;
+  $("destinoChamada").textContent =
+    chamada.destino || "";
+
+  $("horarioChamada").textContent =
+    chamada.horario
+      ? `Chamada às ${chamada.horario}`
+      : "";
+
+  // Nova chamada: animação e voz
+
+  if (ultimaChamadaExibida !== chamada.id) {
+    ultimaChamadaExibida = chamada.id;
+
+    area.classList.remove("animar");
+
+    void area.offsetWidth;
+
+    area.classList.add("animar");
+
+    if (anunciar) {
+      falarChamada(chamada);
     }
-
-
-    // ==============================================
-    // SEM CHAMADA
-    // ==============================================
-
-    if (!chamada) {
-
-        aguardando
-            .classList
-            .remove(
-                "escondido"
-            );
-
-
-        areaChamada
-            .classList
-            .add(
-                "escondido"
-            );
-
-
-        return;
-    }
-
-
-    // ==============================================
-    // MOSTRAR CHAMADA
-    // ==============================================
-
-    aguardando
-        .classList
-        .add(
-            "escondido"
-        );
-
-
-    areaChamada
-        .classList
-        .remove(
-            "escondido"
-        );
-
-
-    // NOME
-
-    document
-        .getElementById(
-            "nomeChamada"
-        )
-        .textContent =
-        chamada.nome;
-
-
-    // DESTINO
-
-    document
-        .getElementById(
-            "destinoChamada"
-        )
-        .textContent =
-        chamada.destino;
-
-
-    // HORÁRIO
-
-    document
-        .getElementById(
-            "horarioChamada"
-        )
-        .textContent =
-
-        chamada.horario
-
-            ? `Chamada às ${chamada.horario}`
-
-            : "";
-
-
-    // ==============================================
-    // VERIFICAR SE É UMA NOVA CHAMADA
-    // ==============================================
-
-    if (
-        String(
-            ultimaChamadaExibida
-        )
-        !==
-        String(
-            chamada.id
-        )
-    ) {
-
-
-        ultimaChamadaExibida =
-            chamada.id;
-
-
-        // ==========================================
-        // ANIMAÇÃO
-        // ==========================================
-
-        areaChamada
-            .classList
-            .remove(
-                "animar"
-            );
-
-
-        void areaChamada.offsetWidth;
-
-
-        areaChamada
-            .classList
-            .add(
-                "animar"
-            );
-
-
-        // ==========================================
-        // VOZ
-        // ==========================================
-
-        falarChamada(
-            chamada
-        );
-
-    }
-
+  }
 }
 
+// =====================================
+// ÚLTIMAS CINCO CHAMADAS
+// =====================================
 
-// ======================================================
-// ÚLTIMAS CHAMADAS
-// ======================================================
+function mostrarUltimasChamadas(chamadas) {
+  const lista = $("listaChamadas");
 
-function mostrarUltimasChamadas(
-    chamadas
-) {
+  if (!lista) return;
 
-    const lista =
-        document.getElementById(
-            "listaChamadas"
-        );
+  lista.replaceChildren();
 
+  if (!chamadas.length) {
+    const vazio = document.createElement("div");
 
-    if (!lista) {
+    vazio.className = "sem-chamadas";
+    vazio.textContent =
+      "Nenhuma chamada realizada.";
 
-        return;
-    }
+    lista.appendChild(vazio);
+    return;
+  }
 
+  chamadas.slice(0, 5).forEach(chamada => {
+    const item = document.createElement("div");
+    item.className = "item-chamada";
 
-    if (
-        !chamadas ||
-        chamadas.length === 0
-    ) {
+    const titulo = document.createElement("strong");
 
-        lista.innerHTML = `
+    titulo.append(
+      document.createTextNode(chamada.nome || "")
+    );
 
-            <div class="sem-chamadas">
+    const destino = document.createElement("span");
 
-                Nenhuma chamada realizada.
+    destino.className = "destino-lista";
+    destino.textContent =
+      ` - ${chamada.destino || ""}`;
 
-            </div>
+    titulo.appendChild(destino);
 
-        `;
+    const info = document.createElement("div");
+    info.className = "item-chamada-info";
 
+    const data = document.createElement("span");
+    data.textContent = chamada.data || "";
 
-        return;
-    }
+    const hora = document.createElement("span");
+    hora.textContent = chamada.horario || "";
 
+    info.append(data, hora);
 
-    const ultimas =
-        chamadas.slice(
-            0,
-            5
-        );
-
-
-    lista.innerHTML =
-
-        ultimas
-            .map(
-
-                chamada => `
-
-                    <div class="item-chamada">
-
-                        <strong>
-
-                            ${escaparHTML(
-                                chamada.nome
-                            )}
-
-                            <span class="destino-lista">
-
-                                -
-
-                                ${escaparHTML(
-                                    chamada.destino
-                                )}
-
-                            </span>
-
-                        </strong>
-
-
-                        <div class="item-chamada-info">
-
-                            <span>
-
-                                ${escaparHTML(
-                                    chamada.data || ""
-                                )}
-
-                            </span>
-
-
-                            <span>
-
-                                ${escaparHTML(
-                                    chamada.horario || ""
-                                )}
-
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                `
-
-            )
-            .join("");
-
+    item.append(titulo, info);
+    lista.appendChild(item);
+  });
 }
 
+// =====================================
+// FIREBASE - CHAMADAS EM TEMPO REAL
+// =====================================
 
-// ======================================================
-// DETECTAR ALTERAÇÃO DO SISTEMA PRINCIPAL
-// ======================================================
+onAuthStateChanged(auth, usuario => {
 
-window.addEventListener(
+  // Encerrar conexão anterior, se existir
 
-    "storage",
+  if (pararOuvir) {
+    pararOuvir();
+    pararOuvir = null;
+  }
 
-    function(event) {
+  // Verificar autorização
 
+  const autorizado =
+    !!usuario &&
+    usuario.emailVerified &&
+    usuario.email?.toLowerCase() ===
+      "santoslucas0109@gmail.com";
 
-        if (
+  if (!autorizado) {
+    ultimaChamadaExibida = null;
 
-            event.key ===
-                "mespChamadaAtual"
+    mostrarChamada(null);
+    mostrarUltimasChamadas([]);
 
-            ||
+    informarStatus(
+      "Acesso restrito. Entre primeiro no sistema MESP neste navegador."
+    );
 
-            event.key ===
-                "mespChamadas"
+    return;
+  }
 
-        ) {
+  informarStatus("Aguardando próxima chamada");
 
-            carregarPainel();
+  primeiraLeitura = true;
 
-        }
+  // Buscar as cinco chamadas mais recentes
 
+  const consulta = query(
+    collection(db, "chamadas"),
+    orderBy("criadoEmMs", "desc"),
+    limit(5)
+  );
+
+  // Receber novas chamadas automaticamente
+
+  pararOuvir = onSnapshot(
+    consulta,
+
+    resultado => {
+      const chamadas = resultado.docs.map(
+        item => ({
+          id: item.id,
+          ...item.data()
+        })
+      );
+
+      const atual = chamadas[0] || null;
+
+      mostrarUltimasChamadas(chamadas);
+
+      // Não anunciar chamada antiga ao abrir a TV
+      mostrarChamada(
+        atual,
+        !primeiraLeitura
+      );
+
+      primeiraLeitura = false;
+    },
+
+    erro => {
+      console.error(
+        "Erro ao ouvir chamadas:",
+        erro
+      );
+
+      mostrarChamada(null);
+
+      informarStatus(
+        "Não foi possível carregar as chamadas. Verifique as permissões do Firebase."
+      );
     }
+  );
+});
 
-);
-
-
-// ======================================================
-// VERIFICAÇÃO AUTOMÁTICA
-// ======================================================
-
-// Mesmo se o evento "storage" falhar,
-// o painel verifica novas chamadas
-// a cada meio segundo.
-
-setInterval(
-
-    carregarPainel,
-
-    500
-
-);
-
-
-// ======================================================
+// =====================================
 // INICIAR RELÓGIO
-// ======================================================
+// =====================================
 
 atualizarRelogio();
 
-
 setInterval(
-
-    atualizarRelogio,
-
-    1000
-
+  atualizarRelogio,
+  1000
 );
 
+// =====================================
+// DISPONIBILIZAR BOTÕES DO HTML
+// =====================================
 
-// ======================================================
-// CARREGAR VOZES NOVAMENTE
-// ======================================================
-
-setTimeout(
-
-    carregarVozes,
-
-    500
-
-);
-
-
-setTimeout(
-
-    carregarVozes,
-
-    1500
-
-);
-
-
-// ======================================================
-// INICIAR PAINEL
-// ======================================================
-
-carregarPainel();
+Object.assign(window, {
+  testarVoz,
+  ativarSom
+});
